@@ -8,6 +8,6 @@ def main():
     b=input("Enter second number=")
     (num1,num2)=int(a), int(b)
     sum_result=findsum(num1,num2)
-    print("tThe sum is =",sum_result)
+    print("The sum is =",sum_result)
 
 main()
