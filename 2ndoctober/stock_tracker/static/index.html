@@ -62,8 +62,8 @@
 
     <section class="card">
       <div class="card-head">
-        <h2 id="chart-title">Price chart</h2>
-        <span class="meta" id="chart-meta"></span>
+        <h2 id="chart-title">All holdings</h2>
+        <span class="meta">% change, all stocks on one chart</span>
         <span class="spacer"></span>
         <div class="seg" id="chart-range">
           <button data-r="1d">1D · live</button>
@@ -76,7 +76,8 @@
           <button data-r="max">Max</button>
         </div>
       </div>
-      <div class="chart-box tall"><canvas id="price-chart" aria-label="Price chart for the selected stock" role="img"></canvas></div>
+      <div class="legend" id="legend"></div>
+      <div class="chart-box tall"><canvas id="price-chart" aria-label="Percentage change of all holdings on one chart" role="img"></canvas></div>
       <div class="hint" id="chart-hint"></div>
     </section>
   </main>

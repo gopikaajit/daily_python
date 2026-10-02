@@ -151,6 +151,7 @@ const refLinePlugin = {
 
 function baseOptions(extra = {}) {
   const grid = css("--grid"), muted = css("--muted");
+  const { tooltip = {}, ...plugins } = extra.plugins || {};
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -166,9 +167,10 @@ function baseOptions(extra = {}) {
         borderWidth: 1,
         padding: 10,
         displayColors: false,
+        ...tooltip,
       },
       refLine: { lines: [] },
-      ...extra.plugins,
+      ...plugins,
     },
     scales: {
       x: {
