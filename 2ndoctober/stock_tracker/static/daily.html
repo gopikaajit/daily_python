@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Variation</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="top">
+    <h1>📈 My Portfolio</h1>
+    <nav>
+      <a href="index.html">Portfolio</a>
+      <a href="daily.html" class="active">Daily variation</a>
+    </nav>
+    <div class="status">
+      <span id="status-dot" class="dot"></span>
+      <span id="status-text">Connecting…</span>
+      <label>Refresh
+        <select id="refresh">
+          <option value="2">2s</option>
+          <option value="5">5s</option>
+          <option value="10">10s</option>
+          <option value="30">30s</option>
+          <option value="60">60s</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <div id="banner" class="banner" hidden></div>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Today's move across your holdings</h2>
+        <span class="meta">% change from previous close · live</span>
+      </div>
+      <div class="chart-box" id="overview-box"><canvas id="overview-chart" aria-label="Today's percentage change for each holding" role="img"></canvas></div>
+    </section>
+
+    <div class="chips" id="chips"></div>
+
+    <section class="tiles" id="tiles"></section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2 id="intraday-title">Intraday price</h2>
+        <span class="spacer"></span>
+        <div class="seg" id="intraday-range">
+          <button data-r="1d" data-i="1m" class="on">Today</button>
+          <button data-r="5d" data-i="5m">5 days</button>
+        </div>
+      </div>
+      <div class="chart-box tall"><canvas id="intraday-chart" aria-label="Intraday price chart" role="img"></canvas></div>
+      <div class="hint">Moves with every refresh. Dashed line = previous close.</div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2 id="variation-title">Day-to-day change</h2>
+        <span class="meta">% change of each day's close vs. the day before</span>
+        <span class="spacer"></span>
+        <div class="seg" id="variation-range">
+          <button data-r="1mo" class="on">1M</button>
+          <button data-r="3mo">3M</button>
+          <button data-r="6mo">6M</button>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="variation-chart" aria-label="Daily percentage change bar chart" role="img"></canvas></div>
+      <div class="hint" id="variation-summary"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Daily prices</h2><span class="meta">Newest first</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Change</th><th>Change %</th><th>High–low range</th></tr>
+          </thead>
+          <tbody id="daily-table"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="common.js"></script>
+  <script src="daily.js"></script>
+</body>
+</html>
