@@ -258,6 +258,12 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
 
+    def end_headers(self):
+        # Always serve the newest page/script files instead of a cached copy.
+        if not self.path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def log_message(self, fmt, *args):  # keep the console quiet for API polling
         if not self.path.startswith("/api/"):
             super().log_message(fmt, *args)
