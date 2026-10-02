@@ -8,9 +8,10 @@ that update automatically.
 **Portfolio page** (`index.html`)
 - Totals: invested, current value, total profit/loss, today's change (grouped per currency)
 - Holdings table with live price (flashes green/red when it ticks), today's %, P&L
-- **Live chart** – today's price minute by minute; the newest point moves on every refresh
-- **Long-term chart** – daily closing prices for 1M / 3M / 6M / 1Y, weekly closes for 5Y, monthly for Max,
-  with your buy price drawn as a dashed line
+- **One combined price chart** for the selected stock with range buttons:
+  **1D (live)** minute by minute, 5D, then daily closing prices for 1M / 3M / 6M / 1Y,
+  weekly closes for 5Y and monthly for Max. The newest point moves live on every
+  refresh in every range; dashed lines show the previous close and your buy price
 - Add / remove stocks (saved to `portfolio.json`)
 
 **Daily variation page** (`daily.html`)

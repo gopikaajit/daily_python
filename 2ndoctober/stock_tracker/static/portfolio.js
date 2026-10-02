@@ -1,25 +1,37 @@
-// Portfolio page: holdings table with live prices, live intraday chart and
-// long-term closing-price chart for the selected stock.
+// Portfolio page: holdings table with live prices and one combined price
+// chart for the selected stock – from today's live minute-by-minute price
+// (1D) all the way out to long-term closing prices (1Y, 5Y, Max).
+
+const RANGES = {
+  "1d":  { interval: "1m",  label: "today" },
+  "5d":  { interval: "5m",  label: "5 days" },
+  "1mo": { interval: "1d",  label: "1 month" },
+  "3mo": { interval: "1d",  label: "3 months" },
+  "6mo": { interval: "1d",  label: "6 months" },
+  "1y":  { interval: "1d",  label: "1 year" },
+  "5y":  { interval: "1wk", label: "5 years" },
+  "max": { interval: "1mo", label: "all time" },
+};
 
 const state = {
   holdings: [],
   quotes: {},
   selected: safeStorage("selected") || null,
-  longRange: { range: "1y", interval: "1d" },
-  intraday: null,          // { symbol, loadedAt }
+  range: RANGES[safeStorage("range")] ? safeStorage("range") : "1d",
+  loaded: null,            // { symbol, range, loadedAt } of the data in the chart
 };
 
-const liveChart = lineChart(document.getElementById("live-chart"), {
-  plugins: {
-    tooltip: { callbacks: { label: (c) => "Price " + money(c.parsed.y, quoteOf(state.selected)?.currency) } },
-  },
-});
-const longChart = lineChart(document.getElementById("long-chart"), {
+const isIntraday = (range) => range === "1d" || range === "5d";
+
+const chart = lineChart(document.getElementById("price-chart"), {
   plugins: {
     tooltip: {
       callbacks: {
-        title: (items) => dateOf(longChart.$times[items[0].dataIndex]),
-        label: (c) => "Close " + money(c.parsed.y, quoteOf(state.selected)?.currency),
+        title: (items) => {
+          const t = chart.$times[items[0].dataIndex];
+          return isIntraday(state.range) ? dateOf(t) + " " + timeOf(t) : dateOf(t);
+        },
+        label: (c) => (isIntraday(state.range) ? "Price " : "Close ") + money(c.parsed.y, quoteOf(state.selected)?.currency),
       },
     },
   },
@@ -104,80 +116,95 @@ function renderTiles() {
               <div class="sub ${trendClass(t.day)}">${arrow(t.day)}${pct(t.prev ? (t.day / t.prev) * 100 : null)}</div>`);
 }
 
-// ---------- charts ----------
-async function loadIntraday() {
-  const symbol = state.selected;
-  if (!symbol) return;
-  try {
-    const h = await api.history(symbol, "1d", "1m");
-    if (symbol !== state.selected) return;
-    liveChart.data.labels = h.t.map(timeOf);
-    liveChart.data.datasets[0].data = h.close;
-    liveChart.$times = h.t.slice();
-    liveChart.options.plugins.refLine.lines = [{ value: h.previousClose, label: "Prev. close " + money(h.previousClose, h.currency) }];
-    liveChart.update();
-    state.intraday = { symbol, loadedAt: Date.now() };
-  } catch (e) {
-    document.getElementById("live-meta").textContent = e.message;
-  }
+// ---------- the combined chart ----------
+function labelFor(t, range) {
+  if (range === "1d") return timeOf(t);
+  if (range === "5d") return dateOf(t, false) + " " + timeOf(t);
+  if (range === "5y" || range === "max") return monthOf(t);
+  return dateOf(t, false);
 }
 
-// Push the newest live price into the intraday chart without refetching it.
-function tickIntraday() {
-  const q = quoteOf(state.selected);
-  if (!q || q.price == null || state.intraday?.symbol !== state.selected) return;
-  const times = liveChart.$times || [];
-  const data = liveChart.data.datasets[0].data;
-  const minute = Math.floor(q.time / 60000);
-  const lastMinute = times.length ? Math.floor(times[times.length - 1] / 60000) : -1;
-  if (minute === lastMinute) {
-    data[data.length - 1] = q.price;            // same minute: move the last point
-  } else if (minute > lastMinute) {
-    times.push(q.time);                          // new minute: add a point
-    liveChart.data.labels.push(timeOf(q.time));
-    data.push(q.price);
-  }
-  liveChart.update();
-  const dayPct = q.previousClose ? (q.price / q.previousClose - 1) * 100 : null;
-  document.getElementById("live-meta").innerHTML =
-    `<strong>${money(q.price, q.currency)}</strong> <span class="${trendClass(dayPct)}">${arrow(dayPct)}${pct(dayPct)}</span> · ${timeOf(q.time)}`;
-}
-
-async function loadLongTerm() {
-  const symbol = state.selected;
+async function loadChart() {
+  const symbol = state.selected, range = state.range;
   if (!symbol) return;
-  const { range, interval } = state.longRange;
   try {
-    const h = await api.history(symbol, range, interval);
-    if (symbol !== state.selected) return;
-    // Short ranges show "12 Mar", long ones "Mar 2024"; the tooltip always gets the full date.
-    const long = ["5y", "max"].includes(range);
-    longChart.$times = h.t;
-    longChart.data.labels = h.t.map((t) => (long ? monthOf(t) : dateOf(t, false)));
-    longChart.data.datasets[0].data = h.close;
+    const h = await api.history(symbol, range, RANGES[range].interval);
+    if (symbol !== state.selected || range !== state.range) return;
+    chart.$times = h.t.slice();
+    chart.data.labels = h.t.map((t) => labelFor(t, range));
+    chart.data.datasets[0].data = h.close.slice();
+
+    // Dashed reference lines: previous close (intraday views) and your buy price.
+    const lines = [];
+    const prev = range === "1d" ? h.previousClose : quoteOf(symbol)?.previousClose;
+    if (isIntraday(range) && prev) lines.push({ value: prev, label: "Prev. close " + money(prev, h.currency) });
     const holding = state.holdings.find((x) => x.symbol === symbol);
-    longChart.options.plugins.refLine.lines = holding
-      ? [{ value: holding.buyPrice, label: "Your buy " + money(holding.buyPrice, h.currency) }] : [];
-    longChart.update();
-    const first = h.close[0], last = h.close[h.close.length - 1];
-    const change = first ? (last / first - 1) * 100 : null;
-    document.getElementById("long-hint").innerHTML =
-      `Change over period: <span class="${trendClass(change)}">${arrow(change)}${pct(change)}</span> · Dashed line = your average buy price.`;
+    if (holding) lines.push({ value: holding.buyPrice, label: "Your buy " + money(holding.buyPrice, h.currency) });
+    chart.options.plugins.refLine.lines = lines;
+
+    chart.update();
+    state.loaded = { symbol, range, loadedAt: Date.now() };
+    renderChartInfo();
   } catch (e) {
-    document.getElementById("long-hint").textContent = e.message;
+    document.getElementById("chart-hint").textContent = e.message;
+  }
+}
+
+// Push the newest live price into the chart without refetching it, so the
+// line moves on every refresh – whichever range is shown.
+function tickChart() {
+  const q = quoteOf(state.selected);
+  const l = state.loaded;
+  if (!q || q.price == null || !l || l.symbol !== state.selected || l.range !== state.range) return;
+  const times = chart.$times, data = chart.data.datasets[0].data;
+  if (!times.length) return;
+  const last = times[times.length - 1];
+  let newPoint;
+  if (isIntraday(state.range)) {
+    const step = (state.range === "1d" ? 1 : 5) * 60000;   // one point per candle
+    newPoint = Math.floor(q.time / step) > Math.floor(last / step);
+  } else if (RANGES[state.range].interval === "1d") {
+    newPoint = new Date(q.time).toDateString() !== new Date(last).toDateString() && q.time > last;
+  } else {
+    newPoint = false;                                      // weekly/monthly: update current bar
+  }
+  if (newPoint) {
+    times.push(q.time);
+    chart.data.labels.push(labelFor(q.time, state.range));
+    data.push(q.price);
+  } else {
+    data[data.length - 1] = q.price;
+  }
+  chart.update();
+  renderChartInfo();
+}
+
+function renderChartInfo() {
+  const q = quoteOf(state.selected);
+  const data = chart.data.datasets[0].data;
+  const sym = state.selected;
+  document.getElementById("chart-title").textContent = sym ? `${sym} – ${RANGES[state.range].label}` : "Price chart";
+  if (q && q.price != null) {
+    const dayPct = q.previousClose ? (q.price / q.previousClose - 1) * 100 : null;
+    document.getElementById("chart-meta").innerHTML =
+      `<strong>${money(q.price, q.currency)}</strong> <span class="${trendClass(dayPct)}">${arrow(dayPct)}${pct(dayPct)} today</span> · ${timeOf(q.time)}`;
+  }
+  if (data.length) {
+    const first = state.range === "1d" ? (q?.previousClose ?? data[0]) : data[0];
+    const change = first ? (data[data.length - 1] / first - 1) * 100 : null;
+    document.getElementById("chart-hint").innerHTML =
+      `Change over ${RANGES[state.range].label}: <span class="${trendClass(change)}">${arrow(change)}${pct(change)}</span>` +
+      ` · The latest point moves live · Dashed lines = previous close / your average buy price.`;
   }
 }
 
 function select(symbol) {
   state.selected = symbol;
   safeStorage("selected", symbol || "");
-  document.getElementById("live-title").textContent = symbol ? `${symbol} – live today` : "Live price – today";
-  document.getElementById("long-title").textContent = symbol ? `${symbol} – closing prices` : "Closing prices";
   document.querySelectorAll("#holdings tr[data-symbol]").forEach((r) =>
     r.classList.toggle("selected", r.dataset.symbol === symbol));
-  state.intraday = null;
-  loadIntraday().then(tickIntraday);
-  loadLongTerm();
+  state.loaded = null;
+  loadChart().then(tickChart);
 }
 
 // ---------- refresh loop ----------
@@ -193,9 +220,9 @@ async function refresh() {
     renderTable();
     flashPrices(previous);
     renderTiles();
-    // Re-sync the intraday candles once a minute; tick in between.
-    if (!state.intraday || Date.now() - state.intraday.loadedAt > 60000) await loadIntraday();
-    tickIntraday();
+    // Re-sync the chart data once a minute; tick the live price in between.
+    if (!state.loaded || Date.now() - state.loaded.loadedAt > 60000) await loadChart();
+    tickChart();
     live.setStatus(true, "Live · updated " + new Date().toLocaleTimeString());
   } catch (e) {
     live.setStatus(false, "Update failed: " + e.message);
@@ -237,13 +264,17 @@ document.getElementById("add-form").addEventListener("submit", async (e) => {
   refresh();
 });
 
-document.getElementById("long-range").addEventListener("click", (e) => {
+document.getElementById("chart-range").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
-  document.querySelectorAll("#long-range button").forEach((x) => x.classList.toggle("on", x === b));
-  state.longRange = { range: b.dataset.r, interval: b.dataset.i };
-  loadLongTerm();
+  document.querySelectorAll("#chart-range button").forEach((x) => x.classList.toggle("on", x === b));
+  state.range = b.dataset.r;
+  safeStorage("range", state.range);
+  state.loaded = null;
+  loadChart().then(tickChart);
 });
+
+document.querySelectorAll("#chart-range button").forEach((x) => x.classList.toggle("on", x.dataset.r === state.range));
 
 setupRefreshSelect(() => live.start(refresh));
 onThemeChange(() => location.reload());

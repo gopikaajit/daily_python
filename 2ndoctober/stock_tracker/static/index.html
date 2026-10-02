@@ -60,34 +60,25 @@
         Adding a symbol you already hold averages the buy price.</div>
     </section>
 
-    <div class="grid-2">
-      <section class="card">
-        <div class="card-head">
-          <h2 id="live-title">Live price – today</h2>
-          <span class="spacer"></span>
-          <span class="meta" id="live-meta"></span>
+    <section class="card">
+      <div class="card-head">
+        <h2 id="chart-title">Price chart</h2>
+        <span class="meta" id="chart-meta"></span>
+        <span class="spacer"></span>
+        <div class="seg" id="chart-range">
+          <button data-r="1d">1D · live</button>
+          <button data-r="5d">5D</button>
+          <button data-r="1mo">1M</button>
+          <button data-r="3mo">3M</button>
+          <button data-r="6mo">6M</button>
+          <button data-r="1y">1Y</button>
+          <button data-r="5y">5Y</button>
+          <button data-r="max">Max</button>
         </div>
-        <div class="chart-box"><canvas id="live-chart" aria-label="Intraday price chart" role="img"></canvas></div>
-        <div class="hint">Updates on every refresh. Dashed line = previous close.</div>
-      </section>
-
-      <section class="card">
-        <div class="card-head">
-          <h2 id="long-title">Closing prices</h2>
-          <span class="spacer"></span>
-          <div class="seg" id="long-range">
-            <button data-r="1mo" data-i="1d">1M</button>
-            <button data-r="3mo" data-i="1d">3M</button>
-            <button data-r="6mo" data-i="1d">6M</button>
-            <button data-r="1y" data-i="1d" class="on">1Y</button>
-            <button data-r="5y" data-i="1wk">5Y</button>
-            <button data-r="max" data-i="1mo">Max</button>
-          </div>
-        </div>
-        <div class="chart-box"><canvas id="long-chart" aria-label="Long-term closing price chart" role="img"></canvas></div>
-        <div class="hint" id="long-hint">Dashed line = your average buy price.</div>
-      </section>
-    </div>
+      </div>
+      <div class="chart-box tall"><canvas id="price-chart" aria-label="Price chart for the selected stock" role="img"></canvas></div>
+      <div class="hint" id="chart-hint"></div>
+    </section>
   </main>
 
   <script src="common.js"></script>
