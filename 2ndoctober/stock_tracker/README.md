@@ -30,7 +30,8 @@ python server.py            # real data from Yahoo Finance
 python server.py --demo     # simulated prices (for testing, weekends, offline)
 ```
 
-Open <http://localhost:8000>. Change the refresh rate (2–60 s) from the top-right corner.
+The page opens in your browser automatically (otherwise go to <http://127.0.0.1:8000>).
+Keep the terminal window open while you use it. Change the refresh rate (2–60 s) from the top-right corner.
 
 ## Symbols
 

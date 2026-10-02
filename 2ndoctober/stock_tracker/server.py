@@ -26,6 +26,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -326,13 +327,18 @@ def main():
     parser = argparse.ArgumentParser(description="Live stock portfolio tracker")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--demo", action="store_true", help="use simulated prices")
+    parser.add_argument("--no-browser", action="store_true", help="don't open the browser automatically")
     args = parser.parse_args()
     DEMO_MODE = args.demo
 
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     mode = "DEMO (simulated prices)" if DEMO_MODE else "LIVE (Yahoo Finance)"
     print(f"Stock tracker running in {mode} mode")
-    print(f"Open http://localhost:{args.port} in your browser  (Ctrl+C to stop)")
+    url = f"http://127.0.0.1:{args.port}/"
+    print(f"Open {url} in your browser  (Ctrl+C to stop)")
+    print("Keep this window open while you use the page.")
+    if not args.no_browser:
+        threading.Timer(1, webbrowser.open, [url]).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
